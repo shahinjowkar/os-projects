@@ -58,40 +58,29 @@ execNode_INIT(){
 
 
 int
-gettoken(char **start, char *end, char *tok_start, char *tok_end ){
+gettoken(char **start, char *end, char **tok_start, char **tok_end ){
 
 	char *dummy = *start;
-	if(**start == EOF){
+	int tok = 'x';
+	//check if string ended
+	if (dummy >= end){
 		return 'z';
 	}
-	printf("checkpoint2");
-
-	int tok = 'x';
-	while(dummy < end && strcmp(dummy, " ") != 0){
+	//push pointer up till empty string
+	while(dummy < end && *dummy != ' ' ){
 		dummy++;
 	}
-	printf("checkpoint3");
-
+	//update the start and end of the word by updating **
 	if(tok_start){
-		tok_start = *start;
+		*tok_start = *start;
+		*tok_end = dummy;
 	}
-	printf("checkpoint4");
-
-	if(tok_end){
-		tok_end = dummy;
-	}
-	printf("checkpoint5");
-
-	while(strcmp(dummy," ") == 0){
+	//push till next token
+	while(*dummy == ' '){
 		dummy++;
 	}
-	printf("checkpoint6");
-
-	*start = dummy; 
-	printf("\n %c \n", tok);
+	*start = dummy;
 	return tok;
-
-
 }
 
 
@@ -100,22 +89,43 @@ parsExec(char *s, size_t size){
 	int tok;
 	char *end = s+size;
 	char *tok_start, *tok_end;
-	node *curr = execNode_INIT();
-	printf("checkpoint1");
-	while((tok = gettoken(&s,end,tok_start,tok_end)) == 'x'){
-		printf("HIIII");
+	int counter = 0;
+	execNode *curr = (execNode *) execNode_INIT();
+	while((tok = gettoken(&s,end,&tok_start,&tok_end)) == 'x'){
+		curr->argv[counter] =  tok_start;
+		curr->eargv[counter] = tok_end;
+		counter++;
 	}
+	curr->argv[counter] = 0;
+	curr->eargv[counter] = 0;
+	return (node *)curr;
+}
+void
+parsExecNullTerminate(execNode* curr){
+	for(int i=0; curr->eargv[i]; i++){
 
+		printf("%d\n", i);
+		printf("%c", *(curr->argv[i]));
+		*curr->eargv[i] = 0;
+	}
+}
+void
+printNode(execNode* curr){
+	for(int i=0; curr->argv[i]; i++){
+
+	}
 }
 
 int
 main(int argc, char *argv[]){
 	while(1){
 		char *buff;
-		size_t size;
+		size_t cap;
 		printf("mySh>>" );
-		getline(&buff, &size, stdin);
-		parsExec(buff,size);
-
+		ssize_t n = getline(&buff, &cap, stdin);
+		node *curr = parsExec(buff,n);
+		printf("-------------\n");
+		parsExecNullTerminate((execNode *) curr);
+		printNode((execNode *) curr);
 	}
 }
