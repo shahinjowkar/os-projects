@@ -9,6 +9,7 @@
 
 typedef enum {EXEC = 0, REDIR =1 , PIPE = 2, SEQ = 3, BG = 4 } cmdtype_t;
 
+//structs
 typedef struct{
 	cmdtype_t type;
 } node;
@@ -39,7 +40,6 @@ typedef struct{
 	char *efile; 
 } redirNode;
 
-
 typedef struct{
 	cmdtype_t type;
 	char *argv[MAXARGS];
@@ -47,8 +47,7 @@ typedef struct{
 
 }execNode;
 
-
-
+//initializers
 node *
 execNode_INIT(){
 	execNode *curr;
@@ -58,7 +57,23 @@ execNode_INIT(){
 	return (node *) curr;
 }
 
+node *
+pipeNode_INIT(){
+	pipeNode *curr;
+	curr = malloc(sizeof(pipeNode));
+	memset(curr,0,sizeof(pipeNode));
+	curr->type=PIPE;
+	return (node *) curr;
+}
 
+int 
+peak(char *s, size_t size){
+	char *end = s + size;
+	while(s<end && isspace(*s)) s++;
+	if(s == end) return 0;
+	if(*s == '|') return '|';
+	else return 'x';
+}
 
 int
 gettoken(char **start, char *end, char **tok_start, char **tok_end ){
@@ -68,7 +83,7 @@ gettoken(char **start, char *end, char **tok_start, char **tok_end ){
 		return 'z';
 	}
 	if(*dummy == '|'){
-		return '|';
+		tok = '|';
 	}
 
 	while (dummy < end && !isspace(*dummy)) dummy++; //get to end of word
@@ -82,48 +97,6 @@ gettoken(char **start, char *end, char **tok_start, char **tok_end ){
 }
 
 
-node*
-parsExec(char *s, size_t size){
-	int tok;
-	char *end = s+size;
-	char *tok_start, *tok_end;
-	int counter = 0;
-	execNode *curr = (execNode *) execNode_INIT();
-	while((tok = gettoken(&s,end,&tok_start,&tok_end)) == 'x'){
-		printf("in parsExec : %c\n ", *s);	
-		curr->argv[counter] =  tok_start;
-		curr->eargv[counter] = tok_end;
-		counter++;
-	}
-	curr->argv[counter] = 0;
-	curr->eargv[counter] = 0;
-	printf("s end of parsExec: %c\n ", *s);
-	return (node *)curr;
-}
-
-int 
-peak(char *s, size_t size){
-	char *end = s + size;
-	while(s<end && !isspace(*s)) s++;
-	if(s == end) return 0;
-	if(*s == '|') return '|';
-	else return 'x';
-}
-
-
-node *
-parsePipe(char *s, size_t size){
-	printf("s before parExec(pipe): %c\n ", *s);
-	node *exec1 = parsExec(s,size);
-	printf("s after parsexec(pipe)%c\n", *s);
-	if( peak(s, size) == '|'){
-		printf("PIPE");
-	}
-	printf("NO PIPE");
-
-}
-
-
 void
 parsExecNullTerminate(execNode* curr){
 	for(int i=0; curr->eargv[i]; i++){
@@ -131,8 +104,46 @@ parsExecNullTerminate(execNode* curr){
 	}
 }
 
+//parsers
+node*
+parsExec(char **s, size_t size){
+	int tok;
+	char *end = *s+size;
+	char *tok_start, *tok_end;
+	int counter = 0;
+	execNode *curr = (execNode *) execNode_INIT();
+	while((tok = gettoken(s,end,&tok_start,&tok_end)) == 'x'){
+		curr->argv[counter] =  tok_start;
+		curr->eargv[counter] = tok_end;
+		counter++;
+	}
+	curr->argv[counter] = 0;
+	curr->eargv[counter] = 0;
+	return (node *)curr;
+}
 
 
+node *
+parsePipe(char *s, size_t size){
+
+	node *exec1 = parsExec(&s,size);
+	printf("peak in pipe: %c",peak(s, size) );
+	if(peak(s, size) == '|'){
+		printf("s before get token: %c", *s);
+		gettoken(&s,s+size,0,0);
+		printf("s after get token: %c", *s);
+		pipeNode *curr = (pipeNode *) pipeNode_INIT();
+		curr->left = exec1;
+		// curr->right = parsePipe(s,size);
+		// parsExecNullTerminate((execNode *) curr->left);
+		// parsExecNullTerminate((execNode *) curr->right);
+		// return (node *) curr;
+	}
+	return exec1;
+	parsExecNullTerminate((execNode *) exec1);
+}
+
+//executers
 void
 exec(execNode* curr){
 	// pid_t pid;
@@ -143,6 +154,11 @@ exec(execNode* curr){
 	// }
 
 
+}
+
+void
+printPipe(pipeNode *curr){
+	printf("type: %d", curr->type);
 }
 
 int
@@ -156,7 +172,7 @@ main(int argc, char *argv[]){
 		ssize_t n = getline(&buff, &cap, stdin);
 		// node *curr = parsExec(buff,n);
 		// parsExecNullTerminate((execNode *) curr);
-		parsePipe(buff,n);
+		printPipe((pipeNode *) parsePipe(buff,n));
 		// if((pid = fork()) < 0){printf("panik");exit(1);}
 		// if(pid == 0){
 		// 	exec((execNode *) curr);
