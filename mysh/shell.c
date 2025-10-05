@@ -67,8 +67,7 @@ pipeNode_INIT(){
 }
 
 int 
-peak(char *s, size_t size){
-	char *end = s + size;
+peak(char *s, char *end){
 	while(s<end && isspace(*s)) s++;
 	if(s == end) return 0;
 	if(*s == '|') return '|';
@@ -77,10 +76,12 @@ peak(char *s, size_t size){
 
 int
 gettoken(char **start, char *end, char **tok_start, char **tok_end ){
+	printf("start address:%p end addtess: %p\n", *start,end);
+	printf("start of token value: %c\t", **start);
 	char *dummy = *start;
 	int tok = 'x';
 	if (dummy >= end){
-		return 'z';
+		return 0;
 	}
 	if(*dummy == '|'){
 		tok = '|';
@@ -93,6 +94,7 @@ gettoken(char **start, char *end, char **tok_start, char **tok_end ){
 	}
 	while(dummy<end && isspace(*dummy)) dummy++;//get to next token
 	*start = dummy;
+	printf("end of token value: %c\n", **start);
 	return tok;
 }
 
@@ -106,13 +108,13 @@ parsExecNullTerminate(execNode* curr){
 
 //parsers
 node*
-parsExec(char **s, size_t size){
+parsExec(char **s, char *end){
 	int tok;
-	char *end = *s+size;
 	char *tok_start, *tok_end;
 	int counter = 0;
 	execNode *curr = (execNode *) execNode_INIT();
-	while((tok = gettoken(s,end,&tok_start,&tok_end)) == 'x'){
+	while( peak(*s,end) == 'x'){
+		if((tok = gettoken(s,end,&tok_start,&tok_end)) == 0) break;
 		curr->argv[counter] =  tok_start;
 		curr->eargv[counter] = tok_end;
 		counter++;
@@ -124,23 +126,19 @@ parsExec(char **s, size_t size){
 
 
 node *
-parsePipe(char *s, size_t size){
-
-	node *exec1 = parsExec(&s,size);
-	printf("peak in pipe: %c",peak(s, size) );
-	if(peak(s, size) == '|'){
-		printf("s before get token: %c", *s);
-		gettoken(&s,s+size,0,0);
-		printf("s after get token: %c", *s);
+parsePipe(char *s, char *end){
+	node *exec1 = parsExec(&s,end);
+	if(peak(s,end) == '|'){
+		gettoken(&s,end,0,0);
 		pipeNode *curr = (pipeNode *) pipeNode_INIT();
 		curr->left = exec1;
-		// curr->right = parsePipe(s,size);
-		// parsExecNullTerminate((execNode *) curr->left);
-		// parsExecNullTerminate((execNode *) curr->right);
-		// return (node *) curr;
+		curr->right = parsePipe(s,end);
+		parsExecNullTerminate((execNode *) curr->left);
+		parsExecNullTerminate((execNode *) curr->right);
+		return (node *) curr;
 	}
 	return exec1;
-	parsExecNullTerminate((execNode *) exec1);
+	// parsExecNullTerminate((execNode *) exec1);
 }
 
 //executers
@@ -158,7 +156,15 @@ exec(execNode* curr){
 
 void
 printPipe(pipeNode *curr){
-	printf("type: %d", curr->type);
+	printf("type: %d\n", curr->type);
+	execNode *left = (execNode *) curr->left;
+	execNode *right = (execNode *) curr->right;
+	for(int i = 0; left->argv[i];i++) printf("left: %s\n", left->argv[i]);
+	for(int i = 0; right->argv[i];i++) printf("right: %s\n", right->argv[i]);
+}
+void 
+printExec(execNode *curr){
+	for(int i = 0; curr->argv[i] ; i++) printf("i = %d, value: %s\n", i, curr->argv[i]);
 }
 
 int
@@ -170,9 +176,11 @@ main(int argc, char *argv[]){
 		pid_t pid;
 		printf("mySh>>" );
 		ssize_t n = getline(&buff, &cap, stdin);
-		// node *curr = parsExec(buff,n);
+		// node *curr = parsExec(&buff,n);
 		// parsExecNullTerminate((execNode *) curr);
-		printPipe((pipeNode *) parsePipe(buff,n));
+		// printExec((execNode *) curr);
+		char *end = buff + n;
+		printPipe((pipeNode *) parsePipe(buff,end));
 		// if((pid = fork()) < 0){printf("panik");exit(1);}
 		// if(pid == 0){
 		// 	exec((execNode *) curr);
