@@ -47,7 +47,7 @@ typedef struct{
 
 }execNode;
 
-//initializers
+//INITIALIZERS
 node *
 execNode_INIT(){
 	execNode *curr;
@@ -66,6 +66,7 @@ pipeNode_INIT(){
 	return (node *) curr;
 }
 
+//PROCESSORS
 int 
 peak(char *s, char *end){
 	while(s<end && isspace(*s)) s++;
@@ -76,8 +77,6 @@ peak(char *s, char *end){
 
 int
 gettoken(char **start, char *end, char **tok_start, char **tok_end ){
-	printf("start address:%p end addtess: %p\n", *start,end);
-	printf("start of token value: %c\t", **start);
 	char *dummy = *start;
 	int tok = 'x';
 	if (dummy >= end){
@@ -94,7 +93,6 @@ gettoken(char **start, char *end, char **tok_start, char **tok_end ){
 	}
 	while(dummy<end && isspace(*dummy)) dummy++;//get to next token
 	*start = dummy;
-	printf("end of token value: %c\n", **start);
 	return tok;
 }
 
@@ -106,7 +104,7 @@ parsExecNullTerminate(execNode* curr){
 	}
 }
 
-//parsers
+//PARSERS
 node*
 parsExec(char **s, char *end){
 	int tok;
@@ -137,30 +135,54 @@ parsePipe(char *s, char *end){
 		parsExecNullTerminate((execNode *) curr->right);
 		return (node *) curr;
 	}
+	parsExecNullTerminate((execNode *) exec1);
 	return exec1;
-	// parsExecNullTerminate((execNode *) exec1);
+
 }
 
 //executers
 void
-exec(execNode* curr){
-	// pid_t pid;
-	// if((pid = fork()) < 0){printf("panik");exit(1)};
-	// if(pid==0){
-	execvp((curr->argv[0]), curr->argv);
-	printf("BAS SYNTAX");exit(0);
-	// }
+exec(node* curr){
+	if(curr->type == PIPE){
+		pid_t pid1, pid2;
+		int fd[2];
+		pipe(fd);
+		if((pid1 = fork())<0){printf("panic");exit(0);}
+		if(pid1 == 0){
+			close(STDOUT_FILENO);
+			dup(fd[1]);
+			close(fd[0]);
+			exec(((pipeNode *)curr)->left);
 
+		}
+		if((pid2 = fork())<0){printf("panic");exit(0);}
+		if(pid2 == 0){
+			close(STDIN_FILENO);
+			dup(fd[0]);
+			close(fd[1]);
+			exec(((pipeNode *)curr)->right);
+		}
+		wait(0);
+		wait(0);
+	}
+	if(curr->type == EXEC){
+		execvp((((execNode *)curr)->argv[0]), ((execNode *)curr)->argv);
+		printf("BAS SYNTAX");exit(0);
+	}
 
 }
 
+
+
 void
-printPipe(pipeNode *curr){
-	printf("type: %d\n", curr->type);
-	execNode *left = (execNode *) curr->left;
-	execNode *right = (execNode *) curr->right;
-	for(int i = 0; left->argv[i];i++) printf("left: %s\n", left->argv[i]);
-	for(int i = 0; right->argv[i];i++) printf("right: %s\n", right->argv[i]);
+printTree(node *curr){
+	if(curr->type == PIPE){
+		printTree(((pipeNode *) curr) ->left);
+		printTree(((pipeNode *) curr) ->right);
+	}
+	else{
+		for(int i = 0; ((execNode *) curr)->argv[i];i++) printf("left: %s\n", ((execNode *) curr)->argv[i]);
+	}
 }
 void 
 printExec(execNode *curr){
@@ -176,16 +198,8 @@ main(int argc, char *argv[]){
 		pid_t pid;
 		printf("mySh>>" );
 		ssize_t n = getline(&buff, &cap, stdin);
-		// node *curr = parsExec(&buff,n);
-		// parsExecNullTerminate((execNode *) curr);
-		// printExec((execNode *) curr);
 		char *end = buff + n;
-		printPipe((pipeNode *) parsePipe(buff,end));
-		// if((pid = fork()) < 0){printf("panik");exit(1);}
-		// if(pid == 0){
-		// 	exec((execNode *) curr);
-		// }
-		// wait(0);
+		exec(parsePipe(buff,end));
 
 	}
 }
