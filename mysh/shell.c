@@ -147,23 +147,28 @@ exec(node* curr){
 		pid_t pid1, pid2;
 		int fd[2];
 		pipe(fd);
-		if((pid1 = fork())<0){printf("panic");exit(0);}
+		if((pid1 = fork())<0){printf("panic1");exit(1);}
 		if(pid1 == 0){
-			close(STDOUT_FILENO);
-			dup(fd[1]);
-			close(fd[0]);
-			exec(((pipeNode *)curr)->left);
 
-		}
-		if((pid2 = fork())<0){printf("panic");exit(0);}
-		if(pid2 == 0){
-			close(STDIN_FILENO);
-			dup(fd[0]);
+			if(dup2(fd[1],STDOUT_FILENO ) < 0 ) {printf("panic2");exit(1);};
+			close(fd[0]);
 			close(fd[1]);
-			exec(((pipeNode *)curr)->right);
+			exec(((pipeNode *)curr)->left);
+			printf("panic3");
+			exit(1);
 		}
-		wait(0);
-		wait(0);
+		if((pid2 = fork())<0){printf("panic4");exit(1);}
+		if(pid2 == 0){
+			if(dup2(fd[0],STDIN_FILENO)<0){printf("panic5");exit(1);};
+			close(fd[1]);
+			close(fd[0]);
+			exec(((pipeNode *)curr)->right);
+			exit(1);
+		}
+		close(fd[1]);
+		close(fd[0]);
+		wait(NULL);
+		wait(NULL);
 	}
 	if(curr->type == EXEC){
 		execvp((((execNode *)curr)->argv[0]), ((execNode *)curr)->argv);
@@ -199,7 +204,12 @@ main(int argc, char *argv[]){
 		printf("mySh>>" );
 		ssize_t n = getline(&buff, &cap, stdin);
 		char *end = buff + n;
-		exec(parsePipe(buff,end));
+		if((pid = fork()) < 0){printf("panik7");exit(1);}
+		if(pid == 0){
+			exec(parsePipe(buff,end));
+		}
+		wait(NULL);
+		
 
 	}
 }
