@@ -1,0 +1,16 @@
+CompileFlags:
+  Add:
+    - -x
+    - c
+    - -I/Users/shahinjowkardris/Documents/2025/OS-playGround/projects/xv6-labs-2025
+    - -I/Users/shahinjowkardris/Documents/2025/OS-playGround/projects/xv6-labs-2025/kernel
+    - -I/Users/shahinjowkardris/Documents/2025/OS-playGround/projects/xv6-labs-2025/user
+    - -std=gnu17
+    - -ffreestanding
+    - -fno-builtin
+    - -nostdinc
+    - -include
+    - /Users/shahinjowkardris/Documents/2025/OS-playGround/projects/xv6-labs-2025/kernel/types.h
+    - -include
+    - /Users/shahinjowkardris/Documents/2025/OS-playGround/projects/xv6-labs-2025/kernel/fs.h
+
