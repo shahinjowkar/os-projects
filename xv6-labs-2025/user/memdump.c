@@ -39,20 +39,20 @@ main(int argc, char *argv[])
     printf("Example 5:\n");
     memdump("sccccc", (char*) &example);
   } else if(argc == 2){
-    // format in argv[1], up to 512 bytes of data from standard input.
-    char data[512];
-    int n = 0;
-    memset(data, '\0', sizeof(data));
-    while(n < sizeof(data)){
-      int nn = read(0, data + n, sizeof(data) - n);
-      if(nn <= 0)
-        break;
-      n += nn;
-    }
-    memdump(argv[1], data);
+    // // format in argv[1], up to 512 bytes of data from standard input.
+    // char data[512];
+    // int n = 0;
+    // memset(data, '\0', sizeof(data));
+    // while(n < sizeof(data)){
+    //   int nn = read(0, data + n, sizeof(data) - n);
+    //   if(nn <= 0)
+    //     break;
+    //   n += nn;
+    // }
+    // memdump(argv[1], data);
   } else {
-    printf("Usage: memdump [format]\n");
-    exit(1);
+    // printf("Usage: memdump [format]\n");
+    // exit(1);
   }
   exit(0);
 }
@@ -60,6 +60,29 @@ main(int argc, char *argv[])
 void
 memdump(char *fmt, char *data)
 {
-  // Your code here.
-
+  for(;*fmt;fmt++){
+    if(*fmt == 'i'){
+      printf("%d \n",*(uint32 *)data);
+      data += sizeof(uint32);
+    }
+    if(*fmt == 'p'){
+      printf("%lx \n", *(uint64 *)data);
+      data += sizeof(uint64);
+    }
+    if(*fmt == 'h'){
+      printf("%d \n", *(uint16 *)data);
+      data += sizeof(uint16);
+    }
+    if(*fmt =='c'){
+      printf("%c \n", *(char *)data);
+      data += sizeof(char);
+    }
+    if(*fmt == 's'){
+      printf("%s \n", *(char **)data);
+      data += sizeof(uint64);
+    }
+    if(*fmt == 'S'){
+      printf("%s \n", data);
+    }
+  }
 }
