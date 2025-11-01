@@ -62,10 +62,17 @@ memdump(char *fmt, char *data)
 {
   for(;*fmt;fmt++){
     if(*fmt == 'i'){
+      printf("---------\n");
+      printf("size: %ld\n", sizeof(61810));
+      for(int i = 0;i < 4; i++){
+        printf("%x\n", data[i]);
+      }
+      printf("---------\n");
       printf("%d \n",*(uint32 *)data);
       data += sizeof(uint32);
     }
     if(*fmt == 'p'){
+      
       printf("%lx \n", *(uint64 *)data);
       data += sizeof(uint64);
     }
